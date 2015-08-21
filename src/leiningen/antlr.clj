@@ -79,8 +79,11 @@ and returns a seq of absolute File objects that represent those relative paths r
         "-Werror"
         "-Xlog"]))
 
+(def ^{:doc "The set of options that are supplied as -Dproperty=value"} property-antlr-args (set ["-language"]))
+
 (def ^{:doc "Default options for the ANTLR tool."} default-antlr-opts
   {:o "gen-src"
+   :language "Java"
    :lib nil
    :atn nil
    :encoding nil
@@ -106,7 +109,7 @@ and returns a seq of absolute File objects that represent those relative paths r
               args-map)) {} (keys default-antlr-opts)))
 
 (def ^{:doc "The collection of file extensions that ANTLR accepts (hard-coded in the ANTLR tool)."}
-      file-types #{"g" "g4"})
+  file-types #{"g" "g4"})
 
 (defn make-antlr-args
   "Make the array of arguments to construct the Tool"
@@ -114,9 +117,9 @@ and returns a seq of absolute File objects that represent those relative paths r
   (let [opts-map (merge default-antlr-opts antlr-opts {:o (.getAbsolutePath output-dir)})
         args-map (map-opts-to-args opts-map)
         antlr-args (into [] (map (fn [[k v]]
-                                   (if (contains? boolean-antlr-args k)
-                                     (if v k nil)
-                                     (if (not (nil? v)) [k v] nil))) args-map))
+                                   (cond (contains? boolean-antlr-args k) (if v k nil)
+                                         (contains? property-antlr-args k) (str (str/replace-first k #"-" "-D") "=" v)
+                                         :else (if (not (nil? v)) [k v] nil))) args-map))
         antlr-args-clean (flatten (filter #(not (nil? %)) antlr-args))
         antlr-file-args (map #(.getAbsolutePath %) grammar-files)]
     (concat antlr-args-clean antlr-file-args)))
@@ -145,12 +148,12 @@ with the given configuration options."
 grammar files to generate output in a corresponding subdirectory of the destination directory, using the given config options."
   ([^File src-dir ^File dest-dir] (compile-antlr src-dir dest-dir nil))
   ([^File src-dir ^File dest-dir antlr-opts]
-    (let [input-dirs (dirs-with-type src-dir file-types)]
-      (if (empty? input-dirs)
-        (println "ANTLR source directory" (.getPath src-dir) "is empty.")
-        (let [output-dirs (absolute-files dest-dir (relative-paths src-dir input-dirs))]
-          (doseq [[input-dir output-dir] (map list input-dirs output-dirs)]
-            (process-antlr-dir input-dir output-dir antlr-opts)))))))
+   (let [input-dirs (dirs-with-type src-dir file-types)]
+     (if (empty? input-dirs)
+       (println "ANTLR source directory" (.getPath src-dir) "is empty.")
+       (let [output-dirs (absolute-files dest-dir (relative-paths src-dir input-dirs))]
+         (doseq [[input-dir output-dir] (map list input-dirs output-dirs)]
+           (process-antlr-dir input-dir output-dir antlr-opts)))))))
 
 (defn antlr-src-dir "Determine the ANTLR source directory for the project."
   [project] (File. (get project :antlr-src-dir "src/antlr")))
