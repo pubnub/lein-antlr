@@ -8,4 +8,11 @@
             :url "http://www.apache.org/licenses/LICENSE-2.0"
             :distribution :repo}
   :deploy-repositories [["snapshots" "http://maven.devbuild.pubnub.com:8081/artifactory/ext-snapshot-local"]
-                        ["releases" "http://maven.devbuild.pubnub.com:8081/artifactory/ext-release-local"]])
+                        ["releases" "http://maven.devbuild.pubnub.com:8081/artifactory/ext-release-local"]]
+  ; FIXME remove profiles when Lein build slave is configured
+  :profiles {:pnbuild-temp {:deploy-repositories [["snapshots" {:url "http://maven.devbuild.pubnub.com:8081/artifactory/ext-snapshot-local"
+                                                                :username :env/pn_maven_user
+                                                                :password :env/pn_maven_password}]
+                                                  ["releases" {:url "http://maven.devbuild.pubnub.com:8081/artifactory/ext-release-local"
+                                                               :username :env/pn_maven_user
+                                                               :password :env/pn_maven_password}]]}})
